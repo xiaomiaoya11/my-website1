@@ -1,0 +1,1827 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Airi 心呼吸</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet"/>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#232323',
+            secondary: '#ff9800',
+            neutral: '#e2e4e5',
+            danger: '#d32f2f',
+            success: '#4CAF50',
+          },
+          fontFamily: {
+            sans: ['Microsoft YaHei', 'sans-serif'],
+          },
+        }
+      }
+    }
+  </script>
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .content-auto { content-visibility: auto; }
+      .product-shadow { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
+      .hover-scale { transition: transform 0.3s ease; }
+      .hover-scale:hover { transform: translateY(-3px); }
+      .sidebar-transition { transition: all 0.3s ease; }
+      .content-expand { transition: grid-template-columns 0.3s ease; }
+      .discount-badge {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        background-color: #d32f2f;
+        color: white;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: bold;
+        z-index: 10;
+      }
+    }
+  </style>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      background-color: #e2e4e5; 
+      padding: 20px; 
+      position: relative; 
+      min-height: 100vh; 
+    }
+    /* 语言切换下拉 */
+    .language-dropdown { position: relative; }
+    .language-options { 
+      display: none; 
+      position: absolute; 
+      top: 100%; right: 0; 
+      background-color: white; 
+      border-radius: 4px; 
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); 
+      z-index: 999; 
+    }
+    .language-option { 
+      padding: 8px 15px; 
+      cursor: pointer; 
+      color: #333; 
+      transition: background-color 0.3s ease; 
+    }
+    .language-option:hover { background-color: #f5f5f5; }
+    .language-dropdown:hover .language-options { display: block; }
+
+    /* 垂直分类栏 */
+    .vertical-category-container {
+      display: grid;
+      grid-template-columns: minmax(40px, 160px) 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    .vertical-category-bar {
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      z-index: 20;
+    }
+    .vertical-category-bar:hover { width: 160px; }
+    .vertical-category-bar:not(:hover) { width: 40px; }
+    .vertical-category-bar:not(:hover) .category-text { display: none; }
+    .vertical-category-item {
+      padding: 12px 15px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      border-left: 3px solid transparent;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .vertical-category-item:hover {
+      background-color: #f5f5f5;
+      border-left-color: #ff9800;
+    }
+    .vertical-category-item.active {
+      background-color: #f0f0f0;
+      border-left-color: #ff9800;
+    }
+
+    /* 商品模态框 */
+    .product-modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background-color: rgba(0, 0, 0, 0.6);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* 购物车图标 */
+    .cart-icon {
+      position: fixed !important;
+      bottom: 80px !important; right: 30px !important;
+      background-color: #ffffff !important; 
+      color: #232323 !important;
+      width: 50px !important; height: 50px !important;
+      border-radius: 50% !important;
+      display: flex !important; 
+      justify-content: center !important; 
+      align-items: center !important;
+      box-shadow: 0 0 0 2px #e2e4e5, 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+      cursor: pointer !important;
+      z-index: 9999 !important;
+      transition: all 0.3s ease !important;
+    }
+    .cart-icon:hover {
+      transform: scale(1.1) !important;
+      background-color: #f5f5f5 !important;
+    }
+    .cart-count {
+      position: absolute !important;
+      top: -8px !important; right: -8px !important;
+      background-color: #ff4d4f !important; 
+      color: white !important;
+      font-size: 12px !important;
+      width: 20px !important; height: 20px !important;
+      border-radius: 50% !important;
+      display: flex !important; 
+      justify-content: center !important; 
+      align-items: center !important;
+      z-index: 1 !important;
+    }
+
+    /* 响应式 */
+    @media (max-width: 768px) {
+      .vertical-category-container { grid-template-columns: 1fr; }
+      .vertical-category-bar { 
+        margin-bottom: 15px; 
+        width: 100% !important; 
+      }
+      .vertical-category-bar:not(:hover) .category-text { display: inline; }
+      .header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+      }
+      .header-left { margin-bottom: 10px; }
+      .header-right {
+        margin-top: 10px;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 10px;
+      }
+      .modal-body { flex-direction: column; }
+      .main-image { height: 250px; }
+    }
+
+    /* 新增样式 */
+    .copy-btn {
+      background-color: #f0f0f0;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      margin-left: 5px;
+    }
+    .copy-btn:hover {
+      background-color: #e0e0e0;
+    }
+    .agent-badge {
+      background-color: #4CAF50;
+      color: white;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      margin-left: 5px;
+    }
+    .invite-badge {
+      background-color: #2196F3;
+      color: white;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      margin-left: 5px;
+    }
+    .original-price {
+      text-decoration: line-through;
+      color: #999;
+      font-size: 16px;
+      margin-right: 5px;
+    }
+    .discount-price {
+      color: #d32f2f;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <!-- 头部 -->
+  <div class="header bg-primary text-white flex items-center justify-between p-4 rounded-lg mb-5 shadow-lg">
+    <div class="header-left flex items-center gap-3">
+      <img src="images/logo.jpg" alt="Airi品牌Logo" class="logo w-10 h-10 rounded-full object-cover">
+      <div class="brand-info text-left">
+        <div class="brand-title text-lg font-bold" data-i18n="header.title">Airi</div>
+        <div class="brand-slogan text-xs opacity-80" data-i18n="header.slogan">Light & Pure Essentials<br>—— 轻盈纯净的生活好物 ——</div>
+      </div>
+    </div>
+    <div class="header-right flex items-center gap-5">
+      <div class="search-box flex items-center bg-white rounded-md px-3 h-8 w-44">
+        <i class="fa fa-search search-icon text-primary"></i>
+        <input type="text" placeholder="搜索..." class="search-input flex-1 border-none outline-none bg-transparent text-sm" id="searchInput">
+      </div>
+      <div class="language-dropdown">
+        <button class="language-btn bg-neutral text-primary border-none py-2 px-4 rounded-md cursor-pointer font-bold text-sm transition-all duration-300 hover:opacity-90" id="currentLanguage">中文 ▼</button>
+        <div class="language-options" id="languageOptions">
+          <div class="language-option" data-lang="zh">中文</div>
+          <div class="language-option" data-lang="en">English</div>
+        </div>
+      </div>
+      <button class="auth-btn bg-neutral text-primary border-none py-2 px-4 rounded-md cursor-pointer font-bold text-sm transition-all duration-300 hover:opacity-90" data-i18n="authBtn" onclick="openAuthModal()">登录/注册</button>
+    </div>
+  </div>
+
+  <!-- 分类+商品容器 -->
+  <div class="vertical-category-container">
+    <div class="vertical-category-bar" id="categoryNav">
+      <div class="vertical-category-item active" data-category="all">
+        <i class="fa fa-th-large"></i>
+        <span class="category-text" data-i18n="categories.all">全部商品</span>
+      </div>
+      <div class="vertical-category-item" data-category="clothes">
+        <i class="fa fa-shopping-bag"></i>
+        <span class="category-text" data-i18n="categories.clothes">传统服饰</span>
+      </div>
+      <div class="vertical-category-item" data-category="food">
+        <i class="fa fa-cutlery"></i>
+        <span class="category-text" data-i18n="categories.food">特色小吃</span>
+      </div>
+      <div class="vertical-category-item" data-category="handicraft">
+        <i class="fa fa-paint-brush"></i>
+        <span class="category-text" data-i18n="categories.handicraft">手工艺品</span>
+      </div>
+      <div class="vertical-category-item" data-category="jewel">
+        <i class="fa fa-diamond"></i>
+        <span class="category-text" data-i18n="categories.jewel">珠宝饰品</span>
+      </div>
+      <div class="vertical-category-item" data-category="home">
+        <i class="fa fa-home"></i>
+        <span class="category-text" data-i18n="categories.home">家居用品</span>
+      </div>
+    </div>
+    <div class="products-container content-expand" id="productsContainer">
+      <div class="products grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-8" id="productsGrid">
+        <!-- 动态渲染商品卡片 -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 修改后的页脚 - 高度缩减版 -->
+  <footer class="bg-primary text-white rounded-lg shadow-lg p-3 mt-4">
+    <div class="container mx-auto">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <!-- 关于我们 -->
+        <div class="col-span-1">
+          <h3 class="text-md font-bold mb-2">关于我们</h3>
+          <ul class="space-y-1">
+            <li><a href="#company-intro" onclick="showModal('companyModal')" class="text-neutral hover:text-secondary cursor-pointer text-sm">公司简介</a></li>
+            <li><a href="#quality-policy" onclick="showModal('qualityModal')" class="text-neutral hover:text-secondary cursor-pointer text-sm">品质政策</a></li>
+          </ul>
+        </div>
+        
+        <!-- 客户服务 -->
+        <div class="col-span-1">
+          <h3 class="text-md font-bold mb-2">客户服务</h3>
+          <ul class="space-y-1">
+            <li><a href="#refund-policy" onclick="showModal('refundModal')" class="text-neutral hover:text-secondary cursor-pointer text-sm">退款说明</a></li>
+            <li><a href="#shipping-policy" onclick="showModal('shippingModal')" class="text-neutral hover:text-secondary cursor-pointer text-sm">配送政策</a></li>
+          </ul>
+        </div>
+        
+        <!-- 支付方式 -->
+        <div class="col-span-1">
+          <h3 class="text-md font-bold mb-2">支付方式</h3>
+          <div class="flex flex-wrap gap-2">
+            <span class="text-xs bg-primary-light px-2 py-1 rounded text-white">Kpay</span>
+            <span class="text-xs bg-primary-light px-2 py-1 rounded text-white">KBZ</span>
+            <span class="text-xs bg-primary-light px-2 py-1 rounded text-white">Wavepay</span>
+            <i class="fa fa-alipay text-lg text-neutral hover:text-secondary"></i>
+          </div>
+          <button class="mt-2 text-sm text-neutral hover:text-secondary cursor-pointer" onclick="showPaymentMethods()">查看支付详情</button>
+        </div>
+        
+        <!-- 联系我们 -->
+        <div class="col-span-1">
+          <h3 class="text-md font-bold mb-2">联系我们</h3>
+          <div class="flex flex-wrap gap-2">
+            <a href="weixin://" class="text-neutral hover:text-secondary" title="微信: airixinhuaxi"><i class="fa fa-weixin text-lg"></i></a>
+            <a href="https://t.me/xinhuxi" target="_blank" class="text-neutral hover:text-secondary" title="Telegram: @xinhuxi"><i class="fa fa-paper-plane text-lg"></i></a>
+            <a href="mailto:xinhuxiairi@gmail.com" class="text-neutral hover:text-secondary" title="邮箱: xinhuxiairi@gmail.com"><i class="fa fa-envelope text-lg"></i></a>
+            <a href="tel:09769724669" class="text-neutral hover:text-secondary" title="电话: 09769724669"><i class="fa fa-phone text-lg"></i></a>
+          </div>
+        </div>
+      </div>
+      
+      <div class="border-t border-neutral mt-3 pt-3 text-center text-neutral text-sm">
+        <p>© 2025 Airi 心呼吸. 保留所有权利.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- 支付方式模态框 -->
+  <div id="paymentMethodsModal" class="modal hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl w-full max-w-md max-h-[90vh] overflow-auto">
+      <div class="p-4 border-b flex justify-between items-center">
+        <h3 class="text-xl font-bold">支付方式</h3>
+        <button class="text-gray-500 hover:text-danger" onclick="closeModal('paymentMethodsModal')">
+          <i class="fa fa-times text-xl"></i>
+        </button>
+      </div>
+      <div class="p-4">
+        <div class="mb-4">
+          <h4 class="font-bold mb-2">Kpay</h4>
+          <img src="images/kpay-qr.jpg" alt="Kpay二维码" class="w-full max-w-xs mx-auto mb-2">
+          <p class="text-sm text-gray-600">扫描上方二维码进行支付</p>
+        </div>
+        
+        <div class="mb-4">
+          <h4 class="font-bold mb-2">Wavepay</h4>
+          <img src="images/wavepay-qr.jpg" alt="Wavepay二维码" class="w-full max-w-xs mx-auto mb-2">
+          <p class="text-sm text-gray-600">扫描上方二维码进行支付</p>
+        </div>
+        
+        <div class="mb-4">
+          <h4 class="font-bold mb-2">KBZ Bank</h4>
+          <div class="bg-gray-100 p-3 rounded-lg">
+            <p class="text-sm mb-1">账号: <span id="kbzAccount">00832500804689001</span></p>
+            <p class="text-sm mb-1">账户名: OHMMAR THAN</p>
+            <button class="copy-btn text-xs" onclick="copyToClipboard('kbzAccount')">复制账号</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 认证模态框 -->
+  <div id="authModal" class="modal hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl w-full max-w-md max-h-[90vh] overflow-auto">
+      <div class="p-4 border-b flex justify-between items-center">
+        <h3 class="text-xl font-bold" id="authModalTitle">登录/注册</h3>
+        <button class="text-gray-500 hover:text-danger" onclick="closeModal('authModal')">
+          <i class="fa fa-times text-xl"></i>
+        </button>
+      </div>
+      <div class="p-4">
+        <div id="loginForm">
+          <div class="mb-4">
+            <label class="block text-gray-700 mb-2">手机号</label>
+            <input type="text" class="w-full p-2 border rounded" id="loginPhone">
+          </div>
+          <div class="mb-4">
+            <label class="block text-gray-700 mb-2">密码</label>
+            <input type="password" class="w-full p-2 border rounded" id="loginPassword">
+          </div>
+          <button class="w-full bg-secondary text-white py-2 rounded mb-2" onclick="login()">登录</button>
+          <div class="text-center">
+            <button class="text-sm text-primary" onclick="switchToRegister()">没有账号？立即注册</button>
+          </div>
+        </div>
+        
+        <div id="registerForm" class="hidden">
+          <div class="mb-4">
+            <label class="block text-gray-700 mb-2">手机号</label>
+            <input type="text" class="w-full p-2 border rounded" id="registerPhone">
+          </div>
+          <div class="mb-4">
+            <label class="block text-gray-700 mb-2">密码</label>
+            <input type="password" class="w-full p-2 border rounded" id="registerPassword">
+          </div>
+          <div class="mb-4">
+            <label class="block text-gray-700 mb-2">确认密码</label>
+            <input type="password" class="w-full p-2 border rounded" id="registerConfirmPassword">
+          </div>
+          <div class="mb-4">
+            <label class="block text-gray-700 mb-2">邀请码 (可选)</label>
+            <input type="text" class="w-full p-2 border rounded" id="inviteCode">
+          </div>
+          <button class="w-full bg-secondary text-white py-2 rounded mb-2" onclick="register()">注册</button>
+          <div class="text-center">
+            <button class="text-sm text-primary" onclick="switchToLogin()">已有账号？立即登录</button>
+          </div>
+        </div>
+        
+        <div id="agentRegisterForm" class="hidden">
+          <div class="mb-4">
+            <label class="block text-gray-700 mb-2">手机号</label>
+            <input type="text" class="w-full p-2 border rounded" id="agentPhone">
+          </div>
+          <div class="mb-4">
+            <label class="block text-gray-700 mb-2">密码</label>
+            <input type="password" class="w-full p-2 border rounded" id="agentPassword">
+          </div>
+          <div class="mb-4">
+            <label class="block text-gray-700 mb-2">确认密码</label>
+            <input type="password" class="w-full p-2 border rounded" id="agentConfirmPassword">
+          </div>
+          <div class="mb-4">
+            <label class="block text-gray-700 mb-2">代理申请理由</label>
+            <textarea class="w-full p-2 border rounded" id="agentReason"></textarea>
+          </div>
+          <button class="w-full bg-secondary text-white py-2 rounded mb-2" onclick="registerAgent()">申请成为代理</button>
+          <div class="text-center">
+            <button class="text-sm text-primary" onclick="switchToLogin()">返回登录</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 代理中心模态框 -->
+  <div id="agentCenterModal" class="modal hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl w-full max-w-md max-h-[90vh] overflow-auto">
+      <div class="p-4 border-b flex justify-between items-center">
+        <h3 class="text-xl font-bold">代理中心</h3>
+        <button class="text-gray-500 hover:text-danger" onclick="closeModal('agentCenterModal')">
+          <i class="fa fa-times text-xl"></i>
+        </button>
+      </div>
+      <div class="p-4">
+        <div class="mb-4">
+          <h4 class="font-bold mb-2">您的代理链接</h4>
+          <div class="flex items-center">
+            <input type="text" class="flex-1 p-2 border rounded-l" id="agentLink" readonly>
+            <button class="bg-secondary text-white p-2 rounded-r" onclick="copyAgentLink()">复制</button>
+          </div>
+        </div>
+        
+        <div class="mb-4">
+          <h4 class="font-bold mb-2">代理数据</h4>
+          <div class="grid grid-cols-2 gap-4">
+            <div class="bg-gray-100 p-3 rounded-lg">
+              <p class="text-sm text-gray-600">累计订单</p>
+              <p class="text-xl font-bold" id="agentTotalOrders">0</p>
+            </div>
+            <div class="bg-gray-100 p-3 rounded-lg">
+              <p class="text-sm text-gray-600">累计佣金</p>
+              <p class="text-xl font-bold" id="agentTotalCommission">0 Ks</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="mb-4">
+          <h4 class="font-bold mb-2">代理说明</h4>
+          <ul class="list-disc pl-5 text-sm text-gray-700">
+            <li class="mb-1">通过您的代理链接下单的客户可享受10%优惠</li>
+            <li class="mb-1">每笔通过您链接下单的订单，您将获得5%佣金</li>
+            <li class="mb-1">佣金每月15日结算</li>
+            <li class="mb-1">邀请其他代理加入可获得额外奖励</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 购物车图标 -->
+  <div class="cart-icon" onclick="openCart()">
+    <i class="fa fa-shopping-cart text-xl"></i>
+    <span class="cart-count" id="cartCount">0</span>
+  </div>
+
+  <!-- 购物车模态框 -->
+  <div class="cart-modal hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" id="cartModal">
+    <div class="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-auto">
+      <div class="p-4 border-b flex justify-between items-center">
+        <h3 class="text-xl font-bold" data-i18n="cart.title">购物车</h3>
+        <button class="text-gray-500 hover:text-danger" onclick="closeCart()">
+          <i class="fa fa-times text-xl"></i>
+        </button>
+      </div>
+      <div class="p-4" id="cartItems">
+        <div class="text-center py-10 text-gray-500" id="emptyCartMessage">
+          <i class="fa fa-shopping-cart text-4xl mb-3"></i>
+          <p data-i18n="cart.empty1">购物车是空的</p>
+          <p class="text-sm mt-2" data-i18n="cart.empty2">添加商品到购物车开始购物吧</p>
+        </div>
+      </div>
+      <div class="p-4 border-t bg-gray-50">
+        <div class="mb-2">
+          <div class="flex justify-between">
+            <span class="text-sm">商品总价:</span>
+            <span class="text-sm" id="subtotalPrice">0 Ks</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-sm">优惠折扣:</span>
+            <span class="text-sm text-success" id="discountAmount">-0 Ks</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-sm">运费:</span>
+            <span class="text-sm" id="shippingFee">0 Ks</span>
+          </div>
+        </div>
+        <div class="flex justify-between mb-4 border-t pt-2">
+          <span class="font-bold" data-i18n="cart.total">总计：</span>
+          <span class="font-bold text-lg" id="cartTotal">0 Ks</span>
+        </div>
+        <button class="w-full bg-secondary text-white py-3 rounded-lg font-bold transition-all duration-300 hover:bg-opacity-80" onclick="checkout()">
+          <i class="fa fa-check mr-2"></i>
+          <span data-i18n="cart.checkout">结算</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 商品详情模态框 -->
+  <div class="product-modal" id="productModal">
+    <div class="modal-content bg-white w-[90%] max-w-4xl rounded-xl overflow-hidden shadow-xl flex flex-col">
+      <div class="modal-header bg-primary text-white p-4 flex justify-between items-center">
+        <div id="modalProductTitle" class="text-xl font-bold">商品详情</div>
+        <button class="text-white hover:text-gray-300" onclick="closeProductModal()">
+          <i class="fa fa-times text-xl"></i>
+        </button>
+      </div>
+      <div class="modal-body p-4 flex flex-col md:flex-row gap-6">
+        <div class="modal-image w-full md:w-1/2">
+          <div class="main-image bg-neutral rounded-lg h-80 mb-3 overflow-hidden relative">
+            <div id="discountBadge" class="discount-badge hidden">-20%</div>
+            <img id="modalMainImage" src="" alt="商品主图" class="w-full h-full object-cover">
+          </div>
+          <div class="image-gallery flex gap-2">
+            <!-- 缩略图将动态生成 -->
+          </div>
+        </div>
+        <div class="modal-details w-full md:w-1/2">
+          <div class="price mb-4">
+            <span id="originalPrice" class="original-price hidden"></span>
+            <span id="modalProductPrice" class="text-2xl font-bold text-primary"></span>
+            <span id="discountTag" class="discount-price hidden"></span>
+          </div>
+          <div class="description text-gray-700 mb-4" id="modalProductDescription"></div>
+          
+          <!-- 新增的商品参数区域 -->
+          <div class="product-params mb-4">
+            <h4 class="font-bold mb-2" data-i18n="product.params">商品参数</h4>
+            <div class="grid grid-cols-2 gap-2 text-sm">
+              <div class="param-item">
+                <span class="text-gray-500">风格：</span>
+                <span id="paramStyle">传统</span>
+              </div>
+              <div class="param-item">
+                <span class="text-gray-500">品牌：</span>
+                <span id="paramBrand">Airi</span>
+              </div>
+              <div class="param-item">
+                <span class="text-gray-500">材质：</span>
+                <span id="paramMaterial">丝绸</span>
+              </div>
+              <div class="param-item">
+                <span class="text-gray-500">适合对象：</span>
+                <span id="paramTarget">成人</span>
+              </div>
+              <div class="param-item">
+                <span class="text-gray-500">适合季节：</span>
+                <span id="paramSeason">四季</span>
+              </div>
+              <div class="param-item">
+                <span class="text-gray-500">产地：</span>
+                <span id="paramOrigin">中国</span>
+              </div>
+              <div class="param-item">
+                <span class="text-gray-500">运费：</span>
+                <span id="shippingInfo">满100,000 Ks包邮</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="specs mb-4">
+            <h4 class="font-bold mb-2" data-i18n="product.specs">规格</h4>
+            <div class="flex flex-wrap gap-2" id="modalProductSpecs">
+              <!-- 规格选项将动态生成 -->
+            </div>
+          </div>
+          <div class="quantity mb-4">
+            <h4 class="font-bold mb-2" data-i18n="product.quantity">数量</h4>
+            <div class="flex items-center">
+              <button class="w-10 h-10 bg-neutral flex items-center justify-center rounded-l-lg" onclick="decreaseQuantity()">
+                <i class="fa fa-minus"></i>
+              </button>
+              <input type="number" id="quantityInput" value="1" min="1" class="w-16 h-10 border-y border-neutral text-center outline-none">
+              <button class="w-10 h-10 bg-neutral flex items-center justify-center rounded-r-lg" onclick="increaseQuantity()">
+                <i class="fa fa-plus"></i>
+              </button>
+            </div>
+          </div>
+          <div class="actions flex flex-wrap gap-3">
+            <button class="flex-1 bg-secondary text-white py-3 rounded-lg font-bold transition-all duration-300 hover:bg-opacity-80" onclick="addToCart()">
+              <i class="fa fa-shopping-cart mr-2"></i>
+              <span data-i18n="product.addToCart">加入购物车</span>
+            </button>
+            <button class="flex-1 bg-primary text-white py-3 rounded-lg font-bold transition-all duration-300 hover:bg-opacity-80" onclick="buyNow()">
+              <i class="fa fa-credit-card mr-2"></i>
+              <span data-i18n="product.buyNow">立即购买</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 语言翻译数据
+    const translations = {
+      zh: {
+        "header.title": "Airi",
+        "header.slogan": "Light & Pure Essentials<br>—— 轻盈纯净的生活好物 ——",
+        "authBtn": "登录/注册",
+        "categories.all": "全部商品",
+        "categories.clothes": "传统服饰",
+        "categories.food": "特色小吃",
+        "categories.handicraft": "手工艺品",
+        "categories.jewel": "珠宝饰品",
+        "categories.home": "家居用品",
+        "refund.title": "不退换声明",
+        "refund.content": "商品一经出售，概不支持退换。<br>如有质量问题，请在收到商品后24小时内联系我们。",
+        "footer.copyright": "© 2025 airiofficial.com 版权所有",
+        "footer.interpretation": "最终解释权归Airi 心呼吸所有",
+        "footer.quality": "质量是我们的第一准则，",
+        "footer.service": "服务是我们的最高忠诚",
+        "footer.survival": "以质量求生存以服务求发展，",
+        "footer.commitment": "这是Airi对每位顾客的终生承诺。",
+        "cart.title": "购物车",
+        "cart.empty1": "购物车是空的",
+        "cart.empty2": "添加商品到购物车开始购物吧",
+        "cart.total": "总计：",
+        "cart.checkout": "结算",
+        "product.specs": "规格",
+        "product.quantity": "数量",
+        "product.addToCart": "加入购物车",
+        "product.buyNow": "立即购买",
+        "product.modalTitle": "商品详情",
+        "product.params": "商品参数",
+        "checkout.success": "结算成功！感谢您的购买。",
+        "checkout.error": "结算失败，请重试。",
+        "login.title": "登录",
+        "register.title": "注册",
+        "agent.title": "代理申请",
+        "agent.link": "代理链接",
+        "agent.copy": "复制",
+        "agent.stats": "代理数据",
+        "agent.orders": "累计订单",
+        "agent.commission": "累计佣金",
+        "agent.instructions": "代理说明",
+        "agent.benefit1": "通过您的代理链接下单的客户可享受10%优惠",
+        "agent.benefit2": "每笔通过您链接下单的订单，您将获得5%佣金",
+        "agent.benefit3": "佣金每月15日结算",
+        "agent.benefit4": "邀请其他代理加入可获得额外奖励",
+        "copy.success": "复制成功",
+        "invite.code": "邀请码",
+        "invite.benefit": "邀请好友下单，双方均可获得10%优惠"
+      },
+      en: {
+        "header.title": "Airi",
+        "header.slogan": "Light & Pure Essentials<br>—— Essential Lifestyle Products ——",
+        "authBtn": "Login/Register",
+        "categories.all": "All Products",
+        "categories.clothes": "Traditional Clothing",
+        "categories.food": "Specialty Snacks",
+        "categories.handicraft": "Handicrafts",
+        "categories.jewel": "Jewelry & Accessories",
+        "categories.home": "Home Decor",
+        "refund.title": "No Returns Policy",
+        "refund.content": "All sales are final.<br>If there is a quality issue, please contact us within 24 hours of receipt.",
+        "footer.copyright": "© 2025 airiofficial.com All Rights Reserved",
+        "footer.interpretation": "Final interpretation rights belong to Airi Essentials.",
+        "footer.quality": "Quality is our top priority,",
+        "footer.service": "Service is our highest loyalty",
+        "footer.survival": "Survive by quality, develop by service,",
+        "footer.commitment": "This is Airi's lifelong commitment to every customer.",
+        "cart.title": "Shopping Cart",
+        "cart.empty1": "Your cart is empty",
+        "cart.empty2": "Start shopping by adding products to your cart",
+        "cart.total": "Total:",
+        "cart.checkout": "Checkout",
+        "product.specs": "Specifications",
+        "product.quantity": "Quantity",
+        "product.addToCart": "Add to Cart",
+        "product.buyNow": "Buy Now",
+        "product.modalTitle": "Product Details",
+        "product.params": "Product Parameters",
+        "checkout.success": "Checkout successful! Thank you for your purchase.",
+        "checkout.error": "Checkout failed, please try again.",
+        "login.title": "Login",
+        "register.title": "Register",
+        "agent.title": "Agent Application",
+        "agent.link": "Agent Link",
+        "agent.copy": "Copy",
+        "agent.stats": "Agent Statistics",
+        "agent.orders": "Total Orders",
+        "agent.commission": "Total Commission",
+        "agent.instructions": "Agent Instructions",
+        "agent.benefit1": "Customers ordering through your agent link get 10% discount",
+        "agent.benefit2": "You will receive 5% commission for each order through your link",
+        "agent.benefit3": "Commission is paid on the 15th of each month",
+        "agent.benefit4": "Inviting other agents can earn you extra rewards",
+        "copy.success": "Copied successfully",
+        "invite.code": "Invite Code",
+        "invite.benefit": "Invite friends to order, both parties get 10% discount"
+      }
+    };
+
+    // 商品数据 - 新增了params参数
+    const products = [
+      {
+        id: 1,
+        name: "传统汉服套装",
+        nameEn: "Traditional Hanfu Set",
+        price: 299000,
+        description: "精美的传统汉服套装，采用优质面料制作，适合各种传统场合穿着。",
+        descriptionEn: "Exquisite traditional Hanfu set made from high-quality fabrics, suitable for various traditional occasions.",
+        category: "clothes",
+        images: [
+          "https://picsum.photos/800/1000?random=1",
+          "https://picsum.photos/800/1000?random=2",
+          "https://picsum.photos/800/1000?random=3"
+        ],
+        specs: [
+          { id: 1, name: "S", available: true },
+          { id: 2, name: "M", available: true },
+          { id: 3, name: "L", available: true },
+          { id: 4, name: "XL", available: true }
+        ],
+        params: {
+          style: "传统",
+          brand: "Airi",
+          material: "丝绸",
+          target: "成人",
+          season: "四季",
+          origin: "中国"
+        }
+      },
+      {
+        id: 2,
+        name: "手工刺绣香囊",
+        nameEn: "Hand-embroidered Sachet",
+        price: 49000,
+        description: "精美的手工刺绣香囊，内装天然香料，香气持久，具有驱蚊和舒缓压力的功效。",
+        descriptionEn: "Beautiful hand-embroidered sachet filled with natural fragrances, long-lasting scent, with mosquito repellent and stress-relieving properties.",
+        category: "handicraft",
+        images: [
+          "https://picsum.photos/800/1000?random=4",
+          "https://picsum.photos/800/1000?random=5",
+          "https://picsum.photos/800/1000?random=6"
+        ],
+        specs: [
+          { id: 1, name: "牡丹", available: true },
+          { id: 2, name: "莲花", available: true },
+          { id: 3, name: "梅花", available: true }
+        ],
+        params: {
+          style: "传统",
+          brand: "Airi",
+          material: "丝绸/棉布",
+          target: "成人",
+          season: "四季",
+          origin: "中国"
+        }
+      },
+      {
+        id: 3,
+        name: "传统糕点礼盒",
+        nameEn: "Traditional Pastry Gift Box",
+        price: 129000,
+        description: "精选多种传统中式糕点，独立包装，口感鲜美，是送礼佳品。",
+        descriptionEn: "A selection of traditional Chinese pastries, individually packaged, delicious taste, perfect for gifts.",
+        category: "food",
+        images: [
+          "https://picsum.photos/800/1000?random=7",
+          "https://picsum.photos/800/1000?random=8",
+          "https://picsum.photos/800/1000?random=9"
+        ],
+        specs: [
+          { id: 1, name: "小礼盒", available: true },
+          { id: 2, name: "大礼盒", available: true }
+        ],
+        params: {
+          style: "传统",
+          brand: "Airi",
+          material: "面粉/糖/豆沙",
+          target: "通用",
+          season: "四季",
+          origin: "中国"
+        }
+      },
+      {
+        id: 4,
+        name: "玉石吊坠",
+        nameEn: "Jade Pendant",
+        price: 399000,
+        description: "天然玉石雕刻而成的精美吊坠，佩戴美观大方，寓意吉祥如意。",
+        descriptionEn: "Exquisite pendant carved from natural jade, beautiful and elegant to wear, symbolizing good luck and prosperity.",
+        category: "jewel",
+        images: [
+          "https://picsum.photos/800/1000?random=10",
+          "https://picsum.photos/800/1000?random=11",
+          "https://picsum.photos/800/1000?random=12"
+        ],
+        specs: [
+          { id: 1, name: "玉佩", available: true },
+          { id: 2, name: "玉佛", available: true }
+        ],
+        params: {
+          style: "传统",
+          brand: "Airi",
+          material: "玉石",
+          target: "成人",
+          season: "四季",
+          origin: "中国"
+        }
+      },
+      {
+        id: 5,
+        name: "手工编织竹篮",
+        nameEn: "Handwoven Bamboo Basket",
+        price: 89000,
+        description: "纯手工编织的竹篮，工艺精湛，可用于家居装饰或收纳物品。",
+        descriptionEn: "Pure handwoven bamboo basket with exquisite craftsmanship, can be used for home decoration or storage.",
+        category: "home",
+        images: [
+          "https://picsum.photos/800/1000?random=13",
+          "https://picsum.photos/800/1000?random=14",
+          "https://picsum.photos/800/1000?random=15"
+        ],
+        specs: [
+          { id: 1, name: "小号", available: true },
+          { id: 2, name: "中号", available: true },
+          { id: 3, name: "大号", available: true }
+        ],
+        params: {
+          style: "传统",
+          brand: "Airi",
+          material: "竹子",
+          target: "通用",
+          season: "四季",
+          origin: "中国"
+        }
+      },
+      {
+        id: 6,
+        name: "丝绸围巾",
+        nameEn: "Silk Scarf",
+        price: 199000,
+        description: "采用优质丝绸制作的精美围巾，图案精美，手感柔软，适合各种场合佩戴。",
+        descriptionEn: "Exquisite scarf made from high-quality silk, beautiful patterns, soft touch, suitable for all occasions.",
+        category: "clothes",
+        images: [
+          "https://picsum.photos/800/1000?random=16",
+          "https://picsum.photos/800/1000?random=17",
+          "https://picsum.photos/800/1000?random=18"
+        ],
+        specs: [
+          { id: 1, name: "红色", available: true },
+          { id: 2, name: "蓝色", available: true },
+          { id: 3, name: "紫色", available: true }
+        ],
+        params: {
+          style: "现代",
+          brand: "Airi",
+          material: "丝绸",
+          target: "成人",
+          season: "春秋",
+          origin: "中国"
+        }
+      }
+    ];
+
+    // 当前语言
+    let currentLanguage = 'zh';
+    // 当前选中的商品
+    let currentProduct = null;
+    // 购物车数据
+    let cart = [];
+    // 用户数据
+    let currentUser = null;
+    // 代理数据
+    let agentData = {
+      isAgent: false,
+      agentId: null,
+      totalOrders: 0,
+      totalCommission: 0,
+      agentLink: ""
+    };
+    // 开业折扣时间 (8月1日-31日)
+    const openingDiscountStart = new Date('2025-08-01');
+    const openingDiscountEnd = new Date('2025-08-31');
+    // 当前是否有开业折扣
+    const isOpeningDiscount = new Date() >= openingDiscountStart && new Date() <= openingDiscountEnd;
+
+    // DOM 加载完成后初始化
+    document.addEventListener('DOMContentLoaded', function() {
+      // 初始化商品列表
+      renderProductList(products);
+      
+      // 初始化分类切换
+      initCategoryFilter();
+      
+      // 初始化语言切换
+      initLanguageSwitcher();
+      
+      // 初始化搜索功能
+      initSearch();
+      
+      // 初始化购物车功能
+      initCart();
+      
+      // 初始化商品详情模态框
+      initProductModal();
+      
+      // 检查URL中是否有代理或邀请参数
+      checkUrlParams();
+      
+      // 翻译页面
+      translatePage();
+    });
+
+    // 检查URL参数 (代理链接或邀请码)
+    function checkUrlParams() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const agentId = urlParams.get('agent');
+      const inviteCode = urlParams.get('invite');
+      
+      if (agentId) {
+        localStorage.setItem('agentId', agentId);
+        showToast(currentLanguage === 'zh' ? '您已通过代理链接访问，可享受10%优惠' : 'You have accessed through an agent link and can enjoy 10% discount');
+      }
+      
+      if (inviteCode) {
+        localStorage.setItem('inviteCode', inviteCode);
+        showToast(currentLanguage === 'zh' ? '您已使用邀请码，下单后可获得10%优惠' : 'You have used an invite code and can get 10% discount after ordering');
+      }
+    }
+
+    // 渲染商品列表
+    function renderProductList(productsToRender) {
+      const productsGrid = document.getElementById('productsGrid');
+      productsGrid.innerHTML = '';
+      
+      if (productsToRender.length === 0) {
+        productsGrid.innerHTML = `
+          <div class="col-span-full text-center py-10">
+            <i class="fa fa-search text-4xl mb-3 text-gray-400"></i>
+            <p class="text-gray-500" data-i18n="product.noResult">没有找到匹配的商品</p>
+          </div>
+        `;
+        translatePage();
+        return;
+      }
+      
+      productsToRender.forEach(product => {
+        const productCard = document.createElement('div');
+        productCard.className = 'product-card bg-white rounded-lg overflow-hidden product-shadow hover-scale flex flex-col h-full';
+        
+        // 计算折扣价格
+        const discountPrice = isOpeningDiscount ? Math.round(product.price * 0.8) : product.price;
+        
+        productCard.innerHTML = `
+          <div class="product-image relative pt-[100%] overflow-hidden">
+            ${isOpeningDiscount ? '<div class="discount-badge">-20%</div>' : ''}
+            <img src="${product.images[0]}" alt="${currentLanguage === 'zh' ? product.name : product.nameEn}" 
+                 class="absolute top-0 left-0 w-full h-full object-cover">
+            <div class="absolute top-2 right-2 bg-secondary text-white text-xs font-bold px-2 py-1 rounded">
+              ${currentLanguage === 'zh' ? '新品' : 'New'}
+            </div>
+          </div>
+          <div class="product-info p-3 flex-grow flex flex-col">
+            <h3 class="product-name font-bold text-sm mb-1 line-clamp-2">${currentLanguage === 'zh' ? product.name : product.nameEn}</h3>
+            <div class="product-price text-primary font-bold text-lg mb-2">
+              ${isOpeningDiscount ? `<span class="original-price">${formatPrice(product.price)}</span>` : ''}
+              ${formatPrice(discountPrice)}
+              ${isOpeningDiscount ? `<span class="discount-price">开业特惠</span>` : ''}
+            </div>
+            <div class="product-actions flex gap-2 mt-auto">
+              <button class="flex-1 bg-secondary text-white py-1 text-sm rounded hover:bg-opacity-80 transition-all duration-300" 
+                      onclick="openProductModal(${product.id})">
+                <i class="fa fa-eye mr-1"></i>
+                <span data-i18n="product.view">详情</span>
+              </button>
+              <button class="w-8 bg-primary text-white py-1 rounded hover:bg-opacity-80 transition-all duration-300" 
+                      onclick="addToCartQuick(${product.id})">
+                <i class="fa fa-shopping-cart"></i>
+              </button>
+            </div>
+          </div>
+        `;
+        productsGrid.appendChild(productCard);
+      });
+      
+      // 翻译新添加的元素
+      translatePage();
+    }
+
+    // 格式化价格显示
+    function formatPrice(price) {
+      return (price / 1000).toLocaleString() + ' Ks';
+    }
+
+    // 初始化分类筛选
+    function initCategoryFilter() {
+      const categoryItems = document.querySelectorAll('.vertical-category-item');
+      categoryItems.forEach(item => {
+        item.addEventListener('click', function() {
+          // 移除所有激活状态
+          categoryItems.forEach(i => i.classList.remove('active'));
+          // 添加当前激活状态
+          this.classList.add('active');
+          
+          const category = this.getAttribute('data-category');
+          
+          if (category === 'all') {
+            renderProductList(products);
+          } else {
+            const filteredProducts = products.filter(product => product.category === category);
+            renderProductList(filteredProducts);
+          }
+        });
+      });
+    }
+
+    // 初始化语言切换
+    function initLanguageSwitcher() {
+      const languageOptions = document.querySelectorAll('.language-option');
+      languageOptions.forEach(option => {
+        option.addEventListener('click', function() {
+          currentLanguage = this.getAttribute('data-lang');
+          document.getElementById('currentLanguage').textContent = 
+            currentLanguage === 'zh' ? '中文 ▼' : 'English ▼';
+          
+          // 更新页面语言
+          translatePage();
+          
+          // 更新商品列表语言
+          const activeCategory = document.querySelector('.vertical-category-item.active').getAttribute('data-category');
+          if (activeCategory === 'all') {
+            renderProductList(products);
+          } else {
+            const filteredProducts = products.filter(product => product.category === activeCategory);
+            renderProductList(filteredProducts);
+          }
+        });
+      });
+    }
+
+    // 翻译页面
+    function translatePage() {
+      const elements = document.querySelectorAll('[data-i18n]');
+      elements.forEach(element => {
+        const key = element.getAttribute('data-i18n');
+        if (translations[currentLanguage][key]) {
+          element.innerHTML = translations[currentLanguage][key];
+        }
+      });
+      
+      // 更新模态框标题
+      if (document.getElementById('authModalTitle')) {
+        if (document.getElementById('loginForm').classList.contains('hidden')) {
+          if (document.getElementById('agentRegisterForm').classList.contains('hidden')) {
+            document.getElementById('authModalTitle').textContent = translations[currentLanguage]['register.title'];
+          } else {
+            document.getElementById('authModalTitle').textContent = translations[currentLanguage]['agent.title'];
+          }
+        } else {
+          document.getElementById('authModalTitle').textContent = translations[currentLanguage]['login.title'];
+        }
+      }
+      
+      // 更新代理中心内容
+      if (document.getElementById('agentCenterModal')) {
+        document.querySelector('#agentCenterModal h3').textContent = translations[currentLanguage]['agent.title'];
+        document.querySelector('#agentCenterModal h4:nth-of-type(1)').textContent = translations[currentLanguage]['agent.link'];
+        document.querySelector('#agentCenterModal button').textContent = translations[currentLanguage]['agent.copy'];
+        document.querySelector('#agentCenterModal h4:nth-of-type(2)').textContent = translations[currentLanguage]['agent.stats'];
+        document.querySelector('#agentCenterModal .text-sm:nth-of-type(1)').textContent = translations[currentLanguage]['agent.orders'];
+        document.querySelector('#agentCenterModal .text-sm:nth-of-type(2)').textContent = translations[currentLanguage]['agent.commission'];
+        document.querySelector('#agentCenterModal h4:nth-of-type(3)').textContent = translations[currentLanguage]['agent.instructions'];
+        
+        const listItems = document.querySelectorAll('#agentCenterModal li');
+        listItems[0].textContent = translations[currentLanguage]['agent.benefit1'];
+        listItems[1].textContent = translations[currentLanguage]['agent.benefit2'];
+        listItems[2].textContent = translations[currentLanguage]['agent.benefit3'];
+        listItems[3].textContent = translations[currentLanguage]['agent.benefit4'];
+      }
+    }
+
+    // 初始化搜索功能
+    function initSearch() {
+      const searchInput = document.getElementById('searchInput');
+      searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase().trim();
+        
+        if (searchTerm === '') {
+          renderProductList(products);
+          return;
+        }
+        
+        const filteredProducts = products.filter(product => {
+          const name = currentLanguage === 'zh' ? product.name : product.nameEn;
+          return name.toLowerCase().includes(searchTerm);
+        });
+        
+        renderProductList(filteredProducts);
+      });
+    }
+
+    // 初始化购物车功能
+    function initCart() {
+      // 从本地存储加载购物车数据
+      const savedCart = localStorage.getItem('cart');
+      if (savedCart) {
+        cart = JSON.parse(savedCart);
+        updateCartUI();
+      }
+      
+      // 从本地存储加载用户数据
+      const savedUser = localStorage.getItem('user');
+      if (savedUser) {
+        currentUser = JSON.parse(savedUser);
+      }
+      
+      // 从本地存储加载代理数据
+      const savedAgent = localStorage.getItem('agentData');
+      if (savedAgent) {
+        agentData = JSON.parse(savedAgent);
+      }
+    }
+
+    // 添加商品到购物车（快速添加）
+    function addToCartQuick(productId) {
+      const product = products.find(p => p.id === productId);
+      if (!product) return;
+      
+      // 检查商品是否已在购物车中
+      const cartItemIndex = cart.findIndex(item => item.id === productId);
+      
+      if (cartItemIndex > -1) {
+        // 增加数量
+        cart[cartItemIndex].quantity += 1;
+      } else {
+        // 计算价格 (考虑开业折扣)
+        const price = isOpeningDiscount ? Math.round(product.price * 0.8) : product.price;
+        
+        // 添加新商品
+        cart.push({
+          id: product.id,
+          name: currentLanguage === 'zh' ? product.name : product.nameEn,
+          price: price,
+          originalPrice: product.price,
+          image: product.images[0],
+          quantity: 1,
+          discount: isOpeningDiscount ? 0.2 : 0
+        });
+      }
+      
+      // 保存到本地存储
+      localStorage.setItem('cart', JSON.stringify(cart));
+      
+      // 更新购物车UI
+      updateCartUI();
+      
+      // 显示添加成功提示
+      showToast(currentLanguage === 'zh' ? '已添加到购物车' : 'Added to cart');
+    }
+
+    // 添加商品到购物车（从详情页）
+    function addToCart() {
+      if (!currentProduct) return;
+      
+      const quantity = parseInt(document.getElementById('quantityInput').value) || 1;
+      
+      // 检查商品是否已在购物车中
+      const cartItemIndex = cart.findIndex(item => item.id === currentProduct.id);
+      
+      // 计算价格 (考虑开业折扣)
+      const price = isOpeningDiscount ? Math.round(currentProduct.price * 0.8) : currentProduct.price;
+      
+      if (cartItemIndex > -1) {
+        // 增加数量
+        cart[cartItemIndex].quantity += quantity;
+      } else {
+        // 添加新商品
+        cart.push({
+          id: currentProduct.id,
+          name: currentLanguage === 'zh' ? currentProduct.name : currentProduct.nameEn,
+          price: price,
+          originalPrice: currentProduct.price,
+          image: currentProduct.images[0],
+          quantity: quantity,
+          discount: isOpeningDiscount ? 0.2 : 0
+        });
+      }
+      
+      // 保存到本地存储
+      localStorage.setItem('cart', JSON.stringify(cart));
+      
+      // 更新购物车UI
+      updateCartUI();
+      
+      // 关闭商品详情模态框
+      closeProductModal();
+      
+      // 显示添加成功提示
+      showToast(currentLanguage === 'zh' ? '已添加到购物车' : 'Added to cart');
+    }
+
+    // 更新购物车UI
+    function updateCartUI() {
+      const cartCount = document.getElementById('cartCount');
+      const cartItems = document.getElementById('cartItems');
+      const cartTotal = document.getElementById('cartTotal');
+      const subtotalPrice = document.getElementById('subtotalPrice');
+      const discountAmount = document.getElementById('discountAmount');
+      const shippingFee = document.getElementById('shippingFee');
+      const emptyCartMessage = document.getElementById('emptyCartMessage');
+      
+      // 更新购物车计数
+      const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+      cartCount.textContent = totalItems;
+      
+      // 更新购物车内容
+      if (cart.length === 0) {
+        emptyCartMessage.style.display = 'block';
+        cartItems.innerHTML = '';
+        cartTotal.textContent = '0 Ks';
+        subtotalPrice.textContent = '0 Ks';
+        discountAmount.textContent = '-0 Ks';
+        shippingFee.textContent = '0 Ks';
+        return;
+      }
+      
+      emptyCartMessage.style.display = 'none';
+      cartItems.innerHTML = '';
+      
+      let subtotal = 0;
+      let totalDiscount = 0;
+      
+      cart.forEach(item => {
+        const itemSubtotal = item.originalPrice * item.quantity;
+        const itemDiscount = item.discount * item.originalPrice * item.quantity;
+        const itemTotal = item.price * item.quantity;
+        
+        subtotal += itemSubtotal;
+        totalDiscount += itemDiscount;
+        
+        const cartItemElement = document.createElement('div');
+        cartItemElement.className = 'cart-item flex items-center gap-3 mb-4 pb-4 border-b';
+        cartItemElement.innerHTML = `
+          <div class="cart-item-image w-16 h-16 rounded overflow-hidden">
+            <img src="${item.image}" alt="${item.name}" class="w-full h-full object-cover">
+          </div>
+          <div class="cart-item-info flex-1">
+            <div class="cart-item-name font-medium">${item.name}</div>
+            <div class="cart-item-price text-primary font-bold">
+              ${item.discount > 0 ? `<span class="original-price text-sm">${formatPrice(item.originalPrice)}</span>` : ''}
+              ${formatPrice(item.price)}
+              ${item.discount > 0 ? `<span class="discount-price text-sm">${item.discount * 100}% off</span>` : ''}
+            </div>
+          </div>
+          <div class="cart-item-quantity flex items-center">
+            <button class="w-8 h-8 bg-neutral flex items-center justify-center rounded-l-lg" onclick="decreaseCartItemQuantity(${item.id})">
+              <i class="fa fa-minus text-xs"></i>
+            </button>
+            <input type="number" value="${item.quantity}" min="1" class="w-12 h-8 border-y border-neutral text-center text-sm outline-none" onchange="updateCartItemQuantity(${item.id}, this.value)">
+            <button class="w-8 h-8 bg-neutral flex items-center justify-center rounded-r-lg" onclick="increaseCartItemQuantity(${item.id})">
+              <i class="fa fa-plus text-xs"></i>
+            </button>
+          </div>
+          <div class="cart-item-remove ml-3">
+            <button class="text-gray-400 hover:text-danger" onclick="removeCartItem(${item.id})">
+              <i class="fa fa-trash"></i>
+            </button>
+          </div>
+        `;
+        
+        cartItems.appendChild(cartItemElement);
+      });
+      
+      // 计算运费 (满100,000 Ks包邮)
+      const shipping = subtotal - totalDiscount >= 100000 ? 0 : 5000;
+      
+      // 更新价格显示
+      subtotalPrice.textContent = formatPrice(subtotal);
+      discountAmount.textContent = `-${formatPrice(totalDiscount)}`;
+      shippingFee.textContent = formatPrice(shipping);
+      
+      // 更新总计
+      const total = subtotal - totalDiscount + shipping;
+      cartTotal.textContent = formatPrice(total);
+    }
+
+    // 减少购物车商品数量
+    function decreaseCartItemQuantity(productId) {
+      const cartItemIndex = cart.findIndex(item => item.id === productId);
+      if (cartItemIndex === -1) return;
+      
+      if (cart[cartItemIndex].quantity > 1) {
+        cart[cartItemIndex].quantity -= 1;
+      } else {
+        cart.splice(cartItemIndex, 1);
+      }
+      
+      localStorage.setItem('cart', JSON.stringify(cart));
+      updateCartUI();
+    }
+
+    // 增加购物车商品数量
+    function increaseCartItemQuantity(productId) {
+      const cartItemIndex = cart.findIndex(item => item.id === productId);
+      if (cartItemIndex === -1) return;
+      
+      cart[cartItemIndex].quantity += 1;
+      localStorage.setItem('cart', JSON.stringify(cart));
+      updateCartUI();
+    }
+
+    // 更新购物车商品数量
+    function updateCartItemQuantity(productId, quantity) {
+      const cartItemIndex = cart.findIndex(item => item.id === productId);
+      if (cartItemIndex === -1) return;
+      
+      quantity = parseInt(quantity);
+      if (isNaN(quantity) || quantity <= 0) {
+        cart.splice(cartItemIndex, 1);
+      } else {
+        cart[cartItemIndex].quantity = quantity;
+      }
+      
+      localStorage.setItem('cart', JSON.stringify(cart));
+      updateCartUI();
+    }
+
+    // 移除购物车商品
+    function removeCartItem(productId) {
+      const cartItemIndex = cart.findIndex(item => item.id === productId);
+      if (cartItemIndex === -1) return;
+      
+      cart.splice(cartItemIndex, 1);
+      localStorage.setItem('cart', JSON.stringify(cart));
+      updateCartUI();
+    }
+
+    // 结算
+    function checkout() {
+      if (cart.length === 0) {
+        showToast(currentLanguage === 'zh' ? '购物车为空' : 'Your cart is empty');
+        return;
+      }
+      
+      // 模拟结算流程
+      setTimeout(() => {
+        // 检查是否有代理或邀请优惠
+        const agentId = localStorage.getItem('agentId');
+        const inviteCode = localStorage.getItem('inviteCode');
+        
+        // 清空购物车
+        cart = [];
+        localStorage.setItem('cart', JSON.stringify(cart));
+        updateCartUI();
+        
+        // 关闭购物车模态框
+        closeCart();
+        
+        // 显示结算成功提示
+        showToast(translations[currentLanguage]['checkout.success']);
+        
+        // 如果有代理ID，记录订单
+        if (agentId) {
+          // 在实际应用中，这里应该发送到服务器记录代理订单
+          console.log(`Order placed through agent: ${agentId}`);
+          localStorage.removeItem('agentId');
+        }
+        
+        // 如果有邀请码，记录邀请
+        if (inviteCode) {
+          // 在实际应用中，这里应该发送到服务器记录邀请成功
+          console.log(`Order placed with invite code: ${inviteCode}`);
+          localStorage.removeItem('inviteCode');
+        }
+      }, 800);
+    }
+
+    // 打开购物车
+    function openCart() {
+      const cartModal = document.getElementById('cartModal');
+      cartModal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+
+    // 关闭购物车
+    function closeCart() {
+      const cartModal = document.getElementById('cartModal');
+      cartModal.classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+
+    // 初始化商品详情模态框
+    function initProductModal() {
+      // 点击模态框外部关闭
+      const productModal = document.getElementById('productModal');
+      productModal.addEventListener('click', function(e) {
+        if (e.target === this) {
+          closeProductModal();
+        }
+      });
+    }
+
+    // 打开商品详情模态框
+    function openProductModal(productId) {
+      currentProduct = products.find(p => p.id === productId);
+      if (!currentProduct) return;
+      
+      const modal = document.getElementById('productModal');
+      const modalProductTitle = document.getElementById('modalProductTitle');
+      const modalProductPrice = document.getElementById('modalProductPrice');
+      const originalPrice = document.getElementById('originalPrice');
+      const discountTag = document.getElementById('discountTag');
+      const discountBadge = document.getElementById('discountBadge');
+      const modalProductDescription = document.getElementById('modalProductDescription');
+      const modalMainImage = document.getElementById('modalMainImage');
+      const imageGallery = document.querySelector('.image-gallery');
+      const modalProductSpecs = document.getElementById('modalProductSpecs');
+      const quantityInput = document.getElementById('quantityInput');
+      
+      // 设置模态框内容
+      modalProductTitle.textContent = currentLanguage === 'zh' ? currentProduct.name : currentProduct.nameEn;
+      
+      // 设置价格 (考虑开业折扣)
+      if (isOpeningDiscount) {
+        const discountPrice = Math.round(currentProduct.price * 0.8);
+        originalPrice.textContent = formatPrice(currentProduct.price);
+        originalPrice.classList.remove('hidden');
+        modalProductPrice.textContent = formatPrice(discountPrice);
+        discountTag.textContent = '开业特惠8折';
+        discountTag.classList.remove('hidden');
+        discountBadge.textContent = '-20%';
+        discountBadge.classList.remove('hidden');
+      } else {
+        originalPrice.classList.add('hidden');
+        modalProductPrice.textContent = formatPrice(currentProduct.price);
+        discountTag.classList.add('hidden');
+        discountBadge.classList.add('hidden');
+      }
+      
+      modalProductDescription.textContent = currentLanguage === 'zh' ? currentProduct.description : currentProduct.descriptionEn;
+      modalMainImage.src = currentProduct.images[0];
+      modalMainImage.alt = currentLanguage === 'zh' ? currentProduct.name : currentProduct.nameEn;
+      quantityInput.value = 1;
+      
+      // 设置商品参数
+      document.getElementById('paramStyle').textContent = currentProduct.params.style;
+      document.getElementById('paramBrand').textContent = currentProduct.params.brand;
+      document.getElementById('paramMaterial').textContent = currentProduct.params.material;
+      document.getElementById('paramTarget').textContent = currentProduct.params.target;
+      document.getElementById('paramSeason').textContent = currentProduct.params.season;
+      document.getElementById('paramOrigin').textContent = currentProduct.params.origin;
+      document.getElementById('shippingInfo').textContent = currentLanguage === 'zh' ? '满100,000 Ks包邮' : 'Free shipping for orders over 100,000 Ks';
+      
+      // 清空并重新渲染缩略图
+      imageGallery.innerHTML = '';
+      currentProduct.images.forEach((image, index) => {
+        const thumbnail = document.createElement('div');
+        thumbnail.className = `w-16 h-16 rounded overflow-hidden cursor-pointer ${index === 0 ? 'ring-2 ring-secondary' : ''}`;
+        thumbnail.innerHTML = `
+          <img src="${image}" alt="${currentLanguage === 'zh' ? currentProduct.name : currentProduct.nameEn}" class="w-full h-full object-cover" onclick="changeMainImage('${image}', this)">
+        `;
+        imageGallery.appendChild(thumbnail);
+      });
+      
+      // 清空并重新渲染规格选项
+      modalProductSpecs.innerHTML = '';
+      currentProduct.specs.forEach(spec => {
+        const specOption = document.createElement('div');
+        specOption.className = `spec-option px-3 py-1 border rounded cursor-pointer ${spec.available ? '' : 'opacity-50 cursor-not-allowed'}`;
+        specOption.innerHTML = `
+          <span>${spec.name}</span>
+          ${!spec.available ? '<span class="text-xs text-danger ml-1">已售罄</span>' : ''}
+        `;
+        specOption.addEventListener('click', function() {
+          if (!spec.available) return;
+          
+          // 移除其他选中状态
+          document.querySelectorAll('.spec-option').forEach(opt => {
+            opt.classList.remove('border-secondary', 'bg-secondary/10');
+          });
+          
+          // 添加选中状态
+          this.classList.add('border-secondary', 'bg-secondary/10');
+        });
+        
+        modalProductSpecs.appendChild(specOption);
+      });
+      
+      // 显示模态框
+      modal.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+    }
+
+    // 关闭商品详情模态框
+    function closeProductModal() {
+      const modal = document.getElementById('productModal');
+      modal.style.display = 'none';
+      document.body.style.overflow = '';
+    }
+
+    // 更改主图
+    function changeMainImage(imageUrl, thumbnail) {
+      const modalMainImage = document.getElementById('modalMainImage');
+      modalMainImage.src = imageUrl;
+      
+      // 移除其他缩略图的高亮
+      document.querySelectorAll('.image-gallery > div').forEach(div => {
+        div.classList.remove('ring-2', 'ring-secondary');
+      });
+      
+      // 添加当前缩略图的高亮
+      thumbnail.parentElement.classList.add('ring-2', 'ring-secondary');
+    }
+
+    // 减少数量
+    function decreaseQuantity() {
+      const quantityInput = document.getElementById('quantityInput');
+      if (parseInt(quantityInput.value) > 1) {
+        quantityInput.value = parseInt(quantityInput.value) - 1;
+      }
+    }
+
+    // 增加数量
+    function increaseQuantity() {
+      const quantityInput = document.getElementById('quantityInput');
+      quantityInput.value = parseInt(quantityInput.value) + 1;
+    }
+
+    // 立即购买
+    function buyNow() {
+      if (!currentProduct) return;
+      
+      // 模拟购买流程
+      setTimeout(() => {
+        // 关闭商品详情模态框
+        closeProductModal();
+        
+        // 显示购买成功提示
+        showToast(currentLanguage === 'zh' ? '购买成功！' : 'Purchase successful!');
+      }, 800);
+    }
+
+    // 显示提示消息
+    function showToast(message) {
+      // 检查是否已存在toast，如果存在则移除
+      const existingToast = document.querySelector('.toast');
+      if (existingToast) {
+        existingToast.remove();
+      }
+      
+      // 创建toast元素
+      const toast = document.createElement('div');
+      toast.className = 'toast fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-primary text-white px-6 py-3 rounded-lg shadow-lg z-50 transition-all duration-300 opacity-0';
+      toast.textContent = message;
+      
+      // 添加到页面
+      document.body.appendChild(toast);
+      
+      // 显示toast
+      setTimeout(() => {
+        toast.classList.remove('opacity-0');
+        toast.classList.add('opacity-100');
+      }, 10);
+      
+      // 3秒后隐藏
+      setTimeout(() => {
+        toast.classList.remove('opacity-100');
+        toast.classList.add('opacity-0');
+        
+        // 完全隐藏后移除元素
+        setTimeout(() => {
+          toast.remove();
+        }, 300);
+      }, 3000);
+    }
+
+    // 显示支付方式
+    function showPaymentMethods() {
+      const modal = document.getElementById('paymentMethodsModal');
+      modal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+
+    // 复制到剪贴板
+    function copyToClipboard(elementId) {
+      const element = document.getElementById(elementId);
+      const text = element.textContent;
+      
+      navigator.clipboard.writeText(text).then(() => {
+        showToast(translations[currentLanguage]['copy.success']);
+      }).catch(err => {
+        console.error('Failed to copy: ', err);
+      });
+    }
+
+    // 复制代理链接
+    function copyAgentLink() {
+      const agentLink = document.getElementById('agentLink');
+      navigator.clipboard.writeText(agentLink.value).then(() => {
+        showToast(translations[currentLanguage]['copy.success']);
+      }).catch(err => {
+        console.error('Failed to copy: ', err);
+      });
+    }
+
+    // 打开认证模态框
+    function openAuthModal() {
+      const modal = document.getElementById('authModal');
+      modal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+      
+      // 显示登录表单
+      document.getElementById('loginForm').classList.remove('hidden');
+      document.getElementById('registerForm').classList.add('hidden');
+      document.getElementById('agentRegisterForm').classList.add('hidden');
+      document.getElementById('authModalTitle').textContent = translations[currentLanguage]['login.title'];
+    }
+
+    // 切换到注册表单
+    function switchToRegister() {
+      document.getElementById('loginForm').classList.add('hidden');
+      document.getElementById('registerForm').classList.remove('hidden');
+      document.getElementById('agentRegisterForm').classList.add('hidden');
+      document.getElementById('authModalTitle').textContent = translations[currentLanguage]['register.title'];
+    }
+
+    // 切换到登录表单
+    function switchToLogin() {
+      document.getElementById('loginForm').classList.remove('hidden');
+      document.getElementById('registerForm').classList.add('hidden');
+      document.getElementById('agentRegisterForm').classList.add('hidden');
+      document.getElementById('authModalTitle').textContent = translations[currentLanguage]['login.title'];
+    }
+
+    // 切换到代理注册表单
+    function switchToAgentRegister() {
+      document.getElementById('loginForm').classList.add('hidden');
+      document.getElementById('registerForm').classList.add('hidden');
+      document.getElementById('agentRegisterForm').classList.remove('hidden');
+      document.getElementById('authModalTitle').textContent = translations[currentLanguage]['agent.title'];
+    }
+
+    // 登录
+    function login() {
+      const phone = document.getElementById('loginPhone').value;
+      const password = document.getElementById('loginPassword').value;
+      
+      // 简单验证
+      if (!phone || !password) {
+        showToast(currentLanguage === 'zh' ? '请输入手机号和密码' : 'Please enter phone and password');
+        return;
+      }
+      
+      // 模拟登录成功
+      currentUser = {
+        phone: phone,
+        isAgent: phone === '09769724669' // 模拟代理账号
+      };
+      
+      localStorage.setItem('user', JSON.stringify(currentUser));
+      
+      // 如果是代理，加载代理数据
+      if (currentUser.isAgent) {
+        agentData = {
+          isAgent: true,
+          agentId: 'agent_' + Math.random().toString(36).substr(2, 8),
+          totalOrders: 12,
+          totalCommission: 150000,
+          agentLink: window.location.origin + '?agent=agent_' + Math.random().toString(36).substr(2, 8)
+        };
+        
+        localStorage.setItem('agentData', JSON.stringify(agentData));
+      }
+      
+      showToast(currentLanguage === 'zh' ? '登录成功' : 'Login successful');
+      closeModal('authModal');
+      
+      // 更新UI
+      if (currentUser.isAgent) {
+        document.querySelector('.auth-btn').innerHTML += '<span class="agent-badge">代理</span>';
+      }
+    }
+
+    // 注册
+    function register() {
+      const phone = document.getElementById('registerPhone').value;
+      const password = document.getElementById('registerPassword').value;
+      const confirmPassword = document.getElementById('registerConfirmPassword').value;
+      const inviteCode = document.getElementById('inviteCode').value;
+      
+      // 简单验证
+      if (!phone || !password || !confirmPassword) {
+        showToast(currentLanguage === 'zh' ? '请填写完整信息' : 'Please fill in all information');
+        return;
+      }
+      
+      if (password !== confirmPassword) {
+        showToast(currentLanguage === 'zh' ? '两次密码不一致' : 'Passwords do not match');
+        return;
+      }
+      
+      // 模拟注册成功
+      currentUser = { phone: phone };
+      localStorage.setItem('user', JSON.stringify(currentUser));
+      
+      // 如果有邀请码，处理邀请逻辑
+      if (inviteCode) {
+        // 在实际应用中，这里应该发送到服务器处理邀请
+        console.log(`Registered with invite code: ${inviteCode}`);
+      }
+      
+      showToast(currentLanguage === 'zh' ? '注册成功' : 'Registration successful');
+      closeModal('authModal');
+    }
+
+    // 注册代理
+    function registerAgent() {
+      const phone = document.getElementById('agentPhone').value;
+      const password = document.getElementById('agentPassword').value;
+      const confirmPassword = document.getElementById('agentConfirmPassword').value;
+      const reason = document.getElementById('agentReason').value;
+      
+      // 简单验证
+      if (!phone || !password || !confirmPassword || !reason) {
+        showToast(currentLanguage === 'zh' ? '请填写完整信息' : 'Please fill in all information');
+        return;
+      }
+      
+      if (password !== confirmPassword) {
+        showToast(currentLanguage === 'zh' ? '两次密码不一致' : 'Passwords do not match');
+        return;
+      }
+      
+      // 模拟代理注册成功
+      currentUser = {
+        phone: phone,
+        isAgent: true
+      };
+      
+      agentData = {
+        isAgent: true,
+        agentId: 'agent_' + Math.random().toString(36).substr(2, 8),
+        totalOrders: 0,
+        totalCommission: 0,
+        agentLink: window.location.origin + '?agent=agent_' + Math.random().toString(36).substr(2, 8)
+      };
+      
+      localStorage.setItem('user', JSON.stringify(currentUser));
+      localStorage.setItem('agentData', JSON.stringify(agentData));
+      
+      showToast(currentLanguage === 'zh' ? '代理申请成功' : 'Agent application successful');
+      closeModal('authModal');
+      
+      // 更新UI
+      document.querySelector('.auth-btn').innerHTML += '<span class="agent-badge">代理</span>';
+    }
+
+    // 打开代理中心
+    function openAgentCenter() {
+      if (!currentUser || !currentUser.isAgent) {
+        showToast(currentLanguage === 'zh' ? '您不是代理' : 'You are not an agent');
+        return;
+      }
+      
+      // 更新代理数据
+      document.getElementById('agentLink').value = agentData.agentLink;
+      document.getElementById('agentTotalOrders').textContent = agentData.totalOrders;
+      document.getElementById('agentTotalCommission').textContent = formatPrice(agentData.totalCommission);
+      
+      const modal = document.getElementById('agentCenterModal');
+      modal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+
+    // 关闭模态框
+    function closeModal(modalId) {
+      const modal = document.getElementById(modalId);
+      modal.classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+
+    // 通用模态框函数
+    function showModal(modalId) {
+      document.getElementById(modalId).classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+
+    // 检查开业折扣状态
+    function checkOpeningDiscount() {
+      return isOpeningDiscount;
+    }
+  </script>
+</body>
+</html>
